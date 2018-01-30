@@ -63,9 +63,8 @@ type Gui struct {
 	// match any known sequence, ESC means KeyEsc.
 	InputEsc bool
 
-	// If ASCII is true then use ASCII instead of unicode to draw the
-	// interface. Using ASCII is more portable.
-	ASCII bool
+	// Runes used to draw the interface
+	FrameTL, FrameTR, FrameBL, FrameBR, FrameH, FrameV rune
 }
 
 // NewGui returns a new Gui object with a given output mode.
@@ -86,6 +85,8 @@ func NewGui(mode OutputMode) (*Gui, error) {
 
 	g.BgColor, g.FgColor = ColorDefault, ColorDefault
 	g.SelBgColor, g.SelFgColor = ColorDefault, ColorDefault
+
+	g.UseUnicodeFramesSingleLine()
 
 	return g, nil
 }
@@ -285,6 +286,19 @@ func (g *Gui) DeleteKeybindings(viewname string) {
 	g.keybindings = s
 }
 
+// Sets gocui.Gui.FrameX variables with ASCII runes to draw the interface.
+// Using ASCII is more portable than Unicode.
+func (g *Gui) UseASCIIFrames() {
+	g.FrameH, g.FrameV = '-', '|'
+	g.FrameTL, g.FrameTR, g.FrameBL, g.FrameBR = '+', '+', '+', '+'
+}
+
+// Sets gocui.Gui.FrameX variables with Unicode runes to draw the interface.
+func (g *Gui) UseUnicodeFrames() {
+	g.FrameTL, g.FrameTR, g.FrameBL, g.FrameBR = '┌', '┐', '└', '┘'
+	g.FrameH, g.FrameV = '─', '│'
+}
+
 // getKey takes an empty interface with a key and returns the corresponding
 // typed Key or rune.
 func getKey(key interface{}) (Key, rune, error) {
@@ -469,22 +483,17 @@ func (g *Gui) flush() error {
 
 // drawFrameEdges draws the horizontal and vertical edges of a view.
 func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor Attribute) error {
-	runeH, runeV := '─', '│'
-	if g.ASCII {
-		runeH, runeV = '-', '|'
-	}
-
 	for x := v.x0 + 1; x < v.x1 && x < g.maxX; x++ {
 		if x < 0 {
 			continue
 		}
 		if v.y0 > -1 && v.y0 < g.maxY {
-			if err := g.SetRune(x, v.y0, runeH, fgColor, bgColor); err != nil {
+			if err := g.SetRune(x, v.y0, g.FrameH, fgColor, bgColor); err != nil {
 				return err
 			}
 		}
 		if v.y1 > -1 && v.y1 < g.maxY {
-			if err := g.SetRune(x, v.y1, runeH, fgColor, bgColor); err != nil {
+			if err := g.SetRune(x, v.y1, g.FrameH, fgColor, bgColor); err != nil {
 				return err
 			}
 		}
@@ -494,12 +503,12 @@ func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor Attribute) error {
 			continue
 		}
 		if v.x0 > -1 && v.x0 < g.maxX {
-			if err := g.SetRune(v.x0, y, runeV, fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x0, y, g.FrameV, fgColor, bgColor); err != nil {
 				return err
 			}
 		}
 		if v.x1 > -1 && v.x1 < g.maxX {
-			if err := g.SetRune(v.x1, y, runeV, fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x1, y, g.FrameV, fgColor, bgColor); err != nil {
 				return err
 			}
 		}
@@ -509,15 +518,10 @@ func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor Attribute) error {
 
 // drawFrameCorners draws the corners of the view.
 func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor Attribute) error {
-	runeTL, runeTR, runeBL, runeBR := '┌', '┐', '└', '┘'
-	if g.ASCII {
-		runeTL, runeTR, runeBL, runeBR = '+', '+', '+', '+'
-	}
-
 	corners := []struct {
 		x, y int
 		ch   rune
-	}{{v.x0, v.y0, runeTL}, {v.x1, v.y0, runeTR}, {v.x0, v.y1, runeBL}, {v.x1, v.y1, runeBR}}
+	}{{v.x0, v.y0, g.FrameTL}, {v.x1, v.y0, g.FrameTR}, {v.x0, v.y1, g.FrameBL}, {v.x1, v.y1, g.FrameBR}}
 
 	for _, c := range corners {
 		if c.x >= 0 && c.y >= 0 && c.x < g.maxX && c.y < g.maxY {
