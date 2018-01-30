@@ -86,7 +86,7 @@ func NewGui(mode OutputMode) (*Gui, error) {
 	g.BgColor, g.FgColor = ColorDefault, ColorDefault
 	g.SelBgColor, g.SelFgColor = ColorDefault, ColorDefault
 
-	g.UseUnicodeFramesSingleLine()
+	g.UseUnicodeFrames()
 
 	return g, nil
 }
