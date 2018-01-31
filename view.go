@@ -213,6 +213,11 @@ func (v *View) Origin() (x, y int) {
 	return v.ox, v.oy
 }
 
+// Origin returns the origin position of the view.
+func (v *View) Lines() int {
+	return len(v.viewLines)
+}
+
 // Write appends a byte slice into the view's internal buffer. Because
 // View implements the io.Writer interface, it can be passed as parameter
 // of functions like fmt.Fprintf, fmt.Fprintln, io.Copy, etc. Clear must
