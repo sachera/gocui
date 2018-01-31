@@ -45,9 +45,21 @@ type Gui struct {
 	// colors of the GUI.
 	BgColor, FgColor Attribute
 
-	// SelBgColor and SelFgColor allow to configure the background and
-	// foreground colors of the frame of the current view.
-	SelBgColor, SelFgColor Attribute
+	// SelBgColor and SelFgColor allow to configure the default background
+	// and foreground colors of the frame of unselected views.
+	FrameBgColor, FrameFgColor Attribute
+
+	// SelBgColor and SelFgColor allow to configure the default background
+	// and foreground colors of the frame of the current view.
+	SelFrameBgColor, SelFrameFgColor Attribute
+
+	// TitleBgColor and TitleFgColor allow to configure the default
+	// background and foreground colors of the title of unselected views.
+	TitleBgColor, TitleFgColor Attribute
+
+	// SelTitleBgColor and SelTitleFgColor allow to configure the default
+	// background and foreground colors of the title of the current view.
+	SelTitleBgColor, SelTitleFgColor Attribute
 
 	// If Highlight is true, Sel{Bg,Fg}Colors will be used to draw the
 	// frame of the current view.
@@ -84,7 +96,9 @@ func NewGui(mode OutputMode) (*Gui, error) {
 	g.maxX, g.maxY = termbox.Size()
 
 	g.BgColor, g.FgColor = ColorDefault, ColorDefault
-	g.SelBgColor, g.SelFgColor = ColorDefault, ColorDefault
+	g.SelFrameBgColor, g.SelFrameFgColor = ColorDefault, ColorDefault
+	g.TitleBgColor, g.TitleFgColor = ColorDefault, ColorDefault
+	g.SelTitleBgColor, g.SelTitleFgColor = ColorDefault, ColorDefault
 
 	g.UseUnicodeFrames()
 
@@ -147,7 +161,7 @@ func (g *Gui) SetView(name string, x0, y0, x1, y1 int) (*View, error) {
 
 	v := newView(name, x0, y0, x1, y1, g.outputMode)
 	v.BgColor, v.FgColor = g.BgColor, g.FgColor
-	v.SelBgColor, v.SelFgColor = g.SelBgColor, g.SelFgColor
+	v.SelBgColor, v.SelFgColor = g.SelFrameBgColor, g.SelFrameFgColor
 	g.views = append(g.views, v)
 	return v, ErrUnknownView
 }
@@ -432,6 +446,16 @@ func (g *Gui) handleEvent(ev *termbox.Event) error {
 	}
 }
 
+func fallbackColor(viewColor, guiColor, fallback Attribute) Attribute {
+	if viewColor != 0 {
+		return viewColor
+	}
+	if guiColor != 0 {
+		return guiColor
+	}
+	return fallback
+}
+
 // flush updates the gui, re-drawing frames and buffers.
 func (g *Gui) flush() error {
 	termbox.Clear(termbox.Attribute(g.FgColor), termbox.Attribute(g.BgColor))
@@ -452,13 +476,14 @@ func (g *Gui) flush() error {
 	}
 	for _, v := range g.views {
 		if v.Frame {
+			highlighted := g.Highlight && v == g.currentView
 			var fgColor, bgColor Attribute
-			if g.Highlight && v == g.currentView {
-				fgColor = g.SelFgColor
-				bgColor = g.SelBgColor
+			if highlighted {
+				fgColor = fallbackColor(v.SelFrameFgColor, g.SelFrameFgColor, ColorDefault)
+				bgColor = fallbackColor(v.SelFrameBgColor, g.SelFrameBgColor, ColorDefault)
 			} else {
-				fgColor = g.FgColor
-				bgColor = g.BgColor
+				fgColor = fallbackColor(v.FrameFgColor, g.FrameFgColor, g.FgColor)
+				bgColor = fallbackColor(v.FrameBgColor, g.FrameBgColor, g.BgColor)
 			}
 
 			if err := g.drawFrameEdges(v, fgColor, bgColor); err != nil {
@@ -468,6 +493,13 @@ func (g *Gui) flush() error {
 				return err
 			}
 			if v.Title != "" {
+				if highlighted {
+					fgColor = fallbackColor(v.SelTitleFgColor, g.SelTitleFgColor, fgColor)
+					bgColor = fallbackColor(v.SelTitleBgColor, g.SelTitleBgColor, bgColor)
+				} else {
+					fgColor = fallbackColor(v.TitleFgColor, g.TitleFgColor, fgColor)
+					bgColor = fallbackColor(v.TitleBgColor, g.TitleBgColor, bgColor)
+				}
 				if err := g.drawTitle(v, fgColor, bgColor); err != nil {
 					return err
 				}

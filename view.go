@@ -37,6 +37,24 @@ type View struct {
 	// foreground colors of the selected line, when it is highlighted.
 	SelBgColor, SelFgColor Attribute
 
+	// FrameBgColor and FrameFgColor allow to configure the background and
+	// foreground colors of the frame of the View.
+	FrameBgColor, FrameFgColor Attribute
+
+	// SelFrameBgColor and SelFrameFgColor are used to configure the
+	// background and foreground colors of the frame, when the view is
+	// highlighted.
+	SelFrameBgColor, SelFrameFgColor Attribute
+
+	// TitleBgColor and TitleFgColor allow to configure the background and
+	// foreground colors of the title of the View.
+	TitleBgColor, TitleFgColor Attribute
+
+	// SelTitleBgColor and SelTitleFgColor are used to configure the
+	// background and foreground colors of the title, when the view is
+	// highlighted.
+	SelTitleBgColor, SelTitleFgColor Attribute
+
 	// If Editable is true, keystrokes will be added to the view's internal
 	// buffer at the cursor position.
 	Editable bool
