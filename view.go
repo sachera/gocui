@@ -326,7 +326,7 @@ func (v *View) draw() error {
 					v.viewLines = append(v.viewLines, vline)
 					continue
 				} else {
-					for n := 0; n <= len(line); n += maxX {
+					for n := 0; n < len(line); n += maxX {
 						if len(line[n:]) <= maxX {
 							vline := viewLine{linesX: n, linesY: i, line: line[n:]}
 							v.viewLines = append(v.viewLines, vline)
