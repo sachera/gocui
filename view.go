@@ -85,6 +85,8 @@ type View struct {
 
 	// If Frame is true, Title allows to configure a title for the view.
 	Title string
+	lastTitle string
+	parsedTitle []cell
 
 	// If Mask is true, the View will display the mask instead of the real
 	// content
@@ -237,7 +239,7 @@ func (v *View) Write(p []byte) (n int, err error) {
 				v.lines = make([][]cell, 1)
 			}
 		default:
-			cells := v.parseInput(ch)
+			cells := parseInput(ch, v.FgColor, v.BgColor, v.ei)
 			if cells == nil {
 				continue
 			}
@@ -251,38 +253,6 @@ func (v *View) Write(p []byte) (n int, err error) {
 		}
 	}
 	return len(p), nil
-}
-
-// parseInput parses char by char the input written to the View. It returns nil
-// while processing ESC sequences. Otherwise, it returns a cell slice that
-// contains the processed data.
-func (v *View) parseInput(ch rune) []cell {
-	cells := []cell{}
-
-	isEscape, err := v.ei.parseOne(ch)
-	if err != nil {
-		for _, r := range v.ei.runes() {
-			c := cell{
-				fgColor: v.FgColor,
-				bgColor: v.BgColor,
-				chr:     r,
-			}
-			cells = append(cells, c)
-		}
-		v.ei.reset()
-	} else {
-		if isEscape {
-			return nil
-		}
-		c := cell{
-			fgColor: v.ei.curFgColor,
-			bgColor: v.ei.curBgColor,
-			chr:     ch,
-		}
-		cells = append(cells, c)
-	}
-
-	return cells
 }
 
 // Read reads data into p. It returns the number of bytes read into p.

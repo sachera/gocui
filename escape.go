@@ -227,3 +227,35 @@ func (ei *escapeInterpreter) output256() error {
 
 	return nil
 }
+
+// parseInput parses char by char the input written to the View. It returns nil
+// while processing ESC sequences. Otherwise, it returns a cell slice that
+// contains the processed data.
+func parseInput(ch rune, fgColor, bgColor Attribute, ei *escapeInterpreter) []cell {
+	cells := []cell{}
+
+	isEscape, err := ei.parseOne(ch)
+	if err != nil {
+		for _, r := range ei.runes() {
+			c := cell{
+				fgColor: fgColor,
+				bgColor: bgColor,
+				chr:     r,
+			}
+			cells = append(cells, c)
+		}
+		ei.reset()
+	} else {
+		if isEscape {
+			return nil
+		}
+		c := cell{
+			fgColor: ei.curFgColor,
+			bgColor: ei.curBgColor,
+			chr:     ch,
+		}
+		cells = append(cells, c)
+	}
+
+	return cells
+}

@@ -41,6 +41,8 @@ type Gui struct {
 	maxX, maxY  int
 	outputMode  OutputMode
 
+	titleEi     *escapeInterpreter
+
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
 	BgColor, FgColor Attribute
@@ -101,6 +103,8 @@ func NewGui(mode OutputMode) (*Gui, error) {
 	g.SelTitleBgColor, g.SelTitleFgColor = ColorDefault, ColorDefault
 
 	g.UseUnicodeFrames()
+
+	g.titleEi = newEscapeInterpreter(mode)
 
 	return g, nil
 }
@@ -245,7 +249,11 @@ func (g *Gui) DeleteView(name string) error {
 func (g *Gui) SetCurrentView(name string) (*View, error) {
 	for _, v := range g.views {
 		if v.name == name {
+			if g.currentView != nil {
+				g.currentView.lastTitle = ""
+			}
 			g.currentView = v
+			g.currentView.lastTitle = ""
 			return v, nil
 		}
 	}
@@ -571,14 +579,26 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 		return nil
 	}
 
-	for i, ch := range v.Title {
+	if v.lastTitle != v.Title {
+		g.titleEi.reset()
+		g.titleEi.curFgColor = fgColor
+		g.titleEi.curBgColor = bgColor
+
+		v.lastTitle = v.Title
+		cells := make([]cell, 0)
+		for _, ch := range v.Title {
+			cells = append(cells, parseInput(ch, fgColor, bgColor, g.titleEi)...)
+		}
+		v.parsedTitle = cells
+	}
+	for i, ch := range v.parsedTitle {
 		x := v.x0 + i + 2
 		if x < 0 {
 			continue
 		} else if x > v.x1-2 || x >= g.maxX {
 			break
 		}
-		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
+		if err := g.SetRune(x, v.y0, ch.chr, ch.fgColor, ch.bgColor); err != nil {
 			return err
 		}
 	}
